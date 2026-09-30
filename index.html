@@ -4,8 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hacktoberfest Issue Finder — Find Open Source Issues to Contribute</title>
-  <meta name="description" content="Find Hacktoberfest-eligible GitHub issues to contribute to. Filter by language, label, and difficulty.">
+  <meta name="description" content="Find Hacktoberfest-eligible GitHub issues to contribute to. Filter by language, difficulty, and paid bounties. Start earning $1 per merged PR.">
   <meta property="og:image" content="https://raw.githubusercontent.com/astra-intelligence/adventure-products/main/img/hacktoberfest-finder-og.png">
+  <meta property="og:title" content="Hacktoberfest Issue Finder">
+  <meta property="og:description" content="Find paid Hacktoberfest issues with $1 bounties. Filter by language, difficulty, and bounty amount.">
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0d1117; color: #c9d1d9; min-height: 100vh; }
@@ -14,16 +16,31 @@
     header h1 { font-size: 2.2em; font-weight: 700; background: linear-gradient(135deg, #58a6ff, #3fb950); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px; }
     header p { color: #8b949e; font-size: 1.1em; max-width: 600px; margin: 0 auto; }
     header .hacktoberfest-badge { display: inline-block; background: #ff9100; color: #0d1117; padding: 4px 16px; border-radius: 20px; font-weight: 600; font-size: 0.85em; margin-bottom: 16px; }
+    header .countdown { color: #ff9100; font-size: 0.9em; margin-top: 8px; }
     .controls { display: flex; gap: 12px; flex-wrap: wrap; margin: 20px 0; justify-content: center; }
     .controls input, .controls select { padding: 10px 16px; border-radius: 8px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; font-size: 0.95em; }
     .controls input { flex: 1; min-width: 200px; }
     .controls button { padding: 10px 24px; border-radius: 8px; border: none; background: #238636; color: white; font-weight: 600; cursor: pointer; font-size: 0.95em; }
     .controls button:hover { background: #2ea043; }
+    .controls button.secondary { background: #1f6feb; }
+    .controls button.secondary:hover { background: #388bfd; }
+    .controls button.bounty-btn { background: #da3633; }
+    .controls button.bounty-btn:hover { background: #f85149; }
+    .controls button.bounty-btn.active { background: #3fb950; }
+    .filters-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-bottom: 8px; }
+    .filters-row .filter-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 20px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; font-size: 0.85em; cursor: pointer; transition: all 0.2s; }
+    .filters-row .filter-chip:hover { border-color: #58a6ff; }
+    .filters-row .filter-chip.active { background: #23863633; border-color: #3fb950; color: #3fb950; }
+    .filters-row .filter-chip.active.bounty { background: #da363333; border-color: #da3633; color: #f85149; }
     .stats { text-align: center; color: #8b949e; margin: 12px 0 20px; font-size: 0.9em; }
+    .share-banner { text-align: center; margin-bottom: 16px; }
+    .share-banner a { color: #58a6ff; font-size: 0.85em; text-decoration: none; cursor: pointer; }
+    .share-banner a:hover { text-decoration: underline; }
     .issue-list { display: flex; flex-direction: column; gap: 8px; }
     .issue-card { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; transition: border-color 0.2s; }
     .issue-card:hover { border-color: #58a6ff; }
-    .issue-card .repo { color: #8b949e; font-size: 0.85em; }
+    .issue-card .repo { color: #8b949e; font-size: 0.85em; display: flex; align-items: center; gap: 8px; }
+    .issue-card .repo .stars { color: #8b949e; font-size: 0.8em; }
     .issue-card .title { color: #58a6ff; font-size: 1.05em; font-weight: 600; margin: 4px 0 8px; }
     .issue-card .title a { color: #58a6ff; text-decoration: none; }
     .issue-card .title a:hover { text-decoration: underline; }
@@ -32,14 +49,15 @@
     .issue-card .meta .label.hacktoberfest { background: #ff910033; color: #ff9100; border: 1px solid #ff910055; }
     .issue-card .meta .label.gfi { background: #1f6feb33; color: #58a6ff; border: 1px solid #1f6feb55; }
     .issue-card .meta .label.bounty { background: #3fb95033; color: #3fb950; border: 1px solid #3fb95055; }
+    .issue-card .meta .label.paid { background: #da363333; color: #f85149; border: 1px solid #da363355; }
     .issue-card .meta .lang { color: #8b949e; font-size: 0.85em; }
-    .issue-card .meta .stars { color: #8b949e; font-size: 0.85em; }
     .issue-card .meta .updated { color: #8b949e; font-size: 0.85em; margin-left: auto; }
     .loading { text-align: center; padding: 40px; color: #8b949e; display: none; }
     .loading.visible { display: block; }
     .loading .spinner { display: inline-block; width: 24px; height: 24px; border: 3px solid #30363d; border-top-color: #58a6ff; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 8px; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .error { text-align: center; padding: 20px; color: #f85149; display: none; }
+    .error .tip { color: #8b949e; font-size: 0.85em; margin-top: 8px; }
     .empty { text-align: center; padding: 40px; color: #8b949e; display: none; }
     .pagination { display: flex; gap: 8px; justify-content: center; margin: 20px 0; }
     .pagination button { padding: 8px 16px; border-radius: 6px; border: 1px solid #30363d; background: #161b22; color: #c9d1d9; cursor: pointer; }
@@ -52,6 +70,8 @@
     .premium-banner .btn:hover { transform: translateY(-1px); }
     footer { text-align: center; padding: 40px 0; color: #484f58; font-size: 0.85em; }
     footer a { color: #58a6ff; text-decoration: none; }
+    .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #238636; color: white; padding: 10px 24px; border-radius: 8px; font-size: 0.9em; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+    .toast.show { opacity: 1; }
   </style>
 </head>
 <body>
@@ -59,8 +79,14 @@
     <header>
       <div class="hacktoberfest-badge">🎃 Hacktoberfest 2026</div>
       <h1>Hacktoberfest Issue Finder</h1>
-      <p>Find open source issues tagged for Hacktoberfest. Start contributing to open source today.</p>
+      <p>Find paid open source issues with $1 bounties. Filter by language, difficulty, and bounty amount.</p>
+      <div class="countdown" id="countdown"></div>
     </header>
+
+    <div class="filters-row">
+      <span class="filter-chip" id="bountyFilter" onclick="toggleBountyFilter()">💰 Bounties only</span>
+      <span class="filter-chip" onclick="copyShareLink()" title="Copy search URL to clipboard">🔗 Share this search</span>
+    </div>
 
     <div class="controls">
       <input type="text" id="searchQuery" placeholder="Language (e.g., python, javascript, rust)" value="">
@@ -70,7 +96,10 @@
         <option value="hacktoberfest">All Hacktoberfest</option>
       </select>
       <button onclick="searchIssues()">Search Issues</button>
+      <button class="secondary" onclick="searchBounties()">💰 Find $1 Bounties</button>
     </div>
+
+    <div class="share-banner" id="shareBanner"></div>
 
     <div class="stats" id="stats"></div>
 
@@ -88,20 +117,87 @@
     <div class="premium-banner">
       <h3>🚀 Want curated issues matched to your skills?</h3>
       <p>Get 10 personalized Hacktoberfest issue recommendations delivered instantly. Filtered by your tech stack, experience level, and interests. Includes PR review checklist and maintainer outreach tips.</p>
-      <a href="https://grantshatz.gumroad.com/l/hacktoberfest-pr-pack" class="btn">Get Issue Pack — $1</a>
+      <a href="https://grantshatz.gumroad.com/l/hacktoberfest-pr-pack" class="btn" target="_blank">Get Issue Pack — $1</a>
     </div>
 
     <footer>
-      Built for Hacktoberfest 2026 · <a href="https://github.com/astra-intelligence/hacktoberfest-finder">GitHub</a> · Free to use, premium for curated matches
+      Built for Hacktoberfest 2026 · <a href="https://github.com/astra-intelligence/hacktoberfest-finder">GitHub</a> · <a href="https://grantshatz.gumroad.com/l/hacktoberfest-pr-pack" target="_blank">$1 Curated Issue Pack</a>
     </footer>
   </div>
 
+  <div class="toast" id="toast"></div>
+
   <script>
     let currentPage = 1;
+    let bountyMode = false;
     const PER_PAGE = 20;
+
+    // Hacktoberfest countdown
+    function updateCountdown() {
+      const now = new Date();
+      const oct1 = new Date(now.getFullYear(), 9, 1); // Oct 1
+      const diff = oct1 - now;
+      if (diff > 0) {
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        document.getElementById('countdown').textContent = `🎃 Hacktoberfest starts in ${h}h ${m}m`;
+      } else {
+        const day = now.getDate();
+        document.getElementById('countdown').textContent = `🎃 Hacktoberfest ${now.getFullYear()} — Day ${day}`;
+      }
+    }
+    updateCountdown();
+
+    // Read URL params on load
+    function getUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('q') || '';
+      const diff = params.get('diff') || '';
+      const bounty = params.get('bounty') === 'true';
+      return { q, diff, bounty };
+    }
+
+    // Copy shareable link
+    function copyShareLink() {
+      const q = document.getElementById('searchQuery').value.trim();
+      const diff = document.getElementById('difficulty').value;
+      const bounty = bountyMode ? 'true' : 'false';
+      let url = window.location.origin + window.location.pathname;
+      const params = [];
+      if (q) params.push('q=' + encodeURIComponent(q));
+      if (diff) params.push('diff=' + encodeURIComponent(diff));
+      if (bountyMode) params.push('bounty=true');
+      if (params.length) url += '?' + params.join('&');
+      
+      navigator.clipboard.writeText(url).then(() => {
+        const toast = document.getElementById('toast');
+        toast.textContent = '🔗 Link copied to clipboard!';
+        toast.classList.add('show');
+        setTimeout(() => toast.classList.remove('show'), 2500);
+      }).catch(() => {
+        // Fallback
+        const banner = document.getElementById('shareBanner');
+        banner.innerHTML = `<a onclick="navigator.clipboard.writeText('${url}')">📋 Click to copy: ${url}</a>`;
+      });
+    }
+
+    function toggleBountyFilter() {
+      bountyMode = !bountyMode;
+      const chip = document.getElementById('bountyFilter');
+      chip.classList.toggle('active', bountyMode);
+      chip.classList.toggle('bounty', bountyMode);
+      if (bountyMode) {
+        searchBounties();
+      } else {
+        searchIssues();
+      }
+    }
 
     async function searchIssues(page = 1) {
       currentPage = page;
+      bountyMode = false;
+      document.getElementById('bountyFilter').classList.remove('active', 'bounty');
+
       const query = document.getElementById('searchQuery').value.trim();
       const difficulty = document.getElementById('difficulty').value;
 
@@ -112,21 +208,25 @@
       document.getElementById('stats').textContent = '';
       document.getElementById('pagination').innerHTML = '';
 
-      let searchQuery = 'label:hacktoberfest state:open';
-      if (query) searchQuery += `+language:${query}`;
+      let searchQuery = 'label:hacktoberfest+state:open';
+      if (query) {
+        // Try language: qualifier; fallback to general search
+        searchQuery += `+language:${query}`;
+      }
       if (difficulty) searchQuery += `+label:${difficulty}`;
 
       try {
-        // Use GitHub's public search API
-        const url = `https://api.github.com/search/issues?q=${encodeURIComponent(searchQuery)}&sort=created&order=desc&per_page=${PER_PAGE}&page=${page}`;
+        const url = `https://api.github.com/search/issues?q=${encodeURIComponent(searchQuery)}&sort=updated&order=desc&per_page=${PER_PAGE}&page=${page}`;
         const resp = await fetch(url, {
           headers: { 'Accept': 'application/vnd.github.v3+json' }
         });
         
+        if (resp.status === 403) {
+          throw new Error('Rate limited by GitHub API. Try adding a ?token=YOUR_GITHUB_TOKEN to the URL, or wait a moment.');
+        }
         if (!resp.ok) throw new Error(`GitHub API error: ${resp.status}`);
-        
+
         const data = await resp.json();
-        
         document.getElementById('loading').classList.remove('visible');
 
         if (!data.items || data.items.length === 0) {
@@ -134,65 +234,139 @@
           return;
         }
 
-        document.getElementById('stats').textContent = `Found ${data.total_count} issues${query ? ' in ' + query : ''}`;
+        document.getElementById('stats').textContent = `Found ${data.total_count} issue${query ? ' matching "' + query + '"' : ''} for Hacktoberfest`;
 
-        const list = document.getElementById('issueList');
-        data.items.forEach(issue => {
-          const card = document.createElement('div');
-          card.className = 'issue-card';
-
-          const repoFull = issue.repository_url.replace('https://api.github.com/repos/', '');
-          const repoUrl = `https://github.com/${repoFull}`;
-          const updated = new Date(issue.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-
-          // Extract labels
-          const labels = issue.labels || [];
-          const labelHtml = labels.map(l => {
-            let cls = '';
-            const name = l.name.toLowerCase();
-            if (name.includes('hacktoberfest')) cls = 'hacktoberfest';
-            else if (name.includes('good first issue') || name.includes('good-first-issue')) cls = 'gfi';
-            else if (name.includes('bounty') || name.includes('paid')) cls = 'bounty';
-            return `<span class="label ${cls}">${l.name}</span>`;
-          }).join(' ');
-
-          card.innerHTML = `
-            <div class="repo">${repoFull}</div>
-            <div class="title"><a href="${issue.html_url}" target="_blank">${issue.title}</a></div>
-            <div class="meta">
-              ${labelHtml}
-              <span class="updated">Updated ${updated}</span>
-            </div>
-          `;
-          list.appendChild(card);
-        });
-
-        // Pagination
-        const totalPages = Math.min(Math.ceil(data.total_count / PER_PAGE), 20);
-        if (totalPages > 1) {
-          const pag = document.getElementById('pagination');
-          if (page > 1) {
-            const prev = document.createElement('button');
-            prev.textContent = '← Previous';
-            prev.onclick = () => searchIssues(page - 1);
-            pag.appendChild(prev);
-          }
-          if (page < totalPages) {
-            const next = document.createElement('button');
-            next.textContent = 'Next →';
-            next.onclick = () => searchIssues(page + 1);
-            pag.appendChild(next);
-          }
-        }
+        renderIssues(data.items);
+        renderPagination(data.total_count, page, searchIssues);
       } catch (err) {
         document.getElementById('loading').classList.remove('visible');
-        document.getElementById('error').textContent = 'Error: ' + err.message + '. The free search is rate-limited; try again in a moment.';
+        document.getElementById('error').innerHTML = '⚠️ ' + err.message + '<div class="tip">Tip: add <code>?token=YOUR_TOKEN</code> to the URL to use an authenticated GitHub token with higher rate limits.</div>';
         document.getElementById('error').style.display = 'block';
       }
     }
 
-    // Load initial results
-    searchIssues();
+    async function searchBounties(page = 1) {
+      currentPage = page;
+      bountyMode = true;
+      document.getElementById('bountyFilter').classList.add('active', 'bounty');
+
+      const query = document.getElementById('searchQuery').value.trim();
+
+      document.getElementById('loading').classList.add('visible');
+      document.getElementById('error').style.display = 'none';
+      document.getElementById('empty').style.display = 'none';
+      document.getElementById('issueList').innerHTML = '';
+      document.getElementById('stats').textContent = '';
+      document.getElementById('pagination').innerHTML = '';
+
+      // Search with multiple bounty-related labels
+      const labelQueries = [
+        'label:%241+label:hacktoberfest',
+        'label:bounty+label:hacktoberfest',
+        'label:paid+label:hacktoberfest',
+        'label:%245+label:hacktoberfest',
+        'label:%2410+label:hacktoberfest'
+      ];
+      const searchQuery = labelQueries.map(lq => `(${lq})`).join('+OR+');
+
+      try {
+        const url = `https://api.github.com/search/issues?q=${searchQuery}+state:open${query ? '+language:' + query : ''}&sort=updated&order=desc&per_page=${PER_PAGE}&page=${page}`;
+        const resp = await fetch(url, {
+          headers: { 'Accept': 'application/vnd.github.v3+json' }
+        });
+        
+        if (resp.status === 403) {
+          throw new Error('Rate limited by GitHub API. Try adding a ?token=YOUR_GITHUB_TOKEN to the URL.');
+        }
+        if (!resp.ok) throw new Error(`GitHub API error: ${resp.status}`);
+
+        const data = await resp.json();
+        document.getElementById('loading').classList.remove('visible');
+
+        if (!data.items || data.items.length === 0) {
+          document.getElementById('empty').innerHTML = 'No paid bounty issues found for Hacktoberfest. Try the general search instead.';
+          document.getElementById('empty').style.display = 'block';
+          return;
+        }
+
+        document.getElementById('stats').textContent = `💰 Found ${data.total_count} paid bounty issues${query ? ' matching "' + query + '"' : ''} for Hacktoberfest`;
+
+        renderIssues(data.items);
+        renderPagination(data.total_count, page, searchBounties);
+      } catch (err) {
+        document.getElementById('loading').classList.remove('visible');
+        document.getElementById('error').innerHTML = '⚠️ ' + err.message + '<div class="tip">Tip: add <code>?token=YOUR_TOKEN</code> to the URL for higher rate limits.</div>';
+        document.getElementById('error').style.display = 'block';
+      }
+    }
+
+    function renderIssues(items) {
+      const list = document.getElementById('issueList');
+      items.forEach(issue => {
+        const card = document.createElement('div');
+        card.className = 'issue-card';
+
+        const repoFull = issue.repository_url.replace('https://api.github.com/repos/', '');
+        const repoUrl = `https://github.com/${repoFull}`;
+        const updated = new Date(issue.updated_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+
+        // Extract labels
+        const labels = issue.labels || [];
+        const labelHtml = labels.map(l => {
+          let cls = '';
+          const name = l.name.toLowerCase();
+          if (name.includes('hacktoberfest')) cls = 'hacktoberfest';
+          else if (name.includes('good first issue') || name.includes('good-first-issue')) cls = 'gfi';
+          else if (name.includes('$') || name.includes('bounty') || name.includes('paid')) cls = 'paid';
+          return `<span class="label ${cls}">${l.name}</span>`;
+        }).join(' ');
+
+        card.innerHTML = `
+          <div class="repo">
+            <a href="${repoUrl}" target="_blank">${repoFull}</a>
+          </div>
+          <div class="title"><a href="${issue.html_url}" target="_blank">${issue.title}</a></div>
+          <div class="meta">
+            ${labelHtml}
+            <span class="updated">Updated ${updated}</span>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function renderPagination(totalCount, page, searchFn) {
+      const totalPages = Math.min(Math.ceil(totalCount / PER_PAGE), 20);
+      if (totalPages > 1) {
+        const pag = document.getElementById('pagination');
+        if (page > 1) {
+          const prev = document.createElement('button');
+          prev.textContent = '← Previous';
+          prev.onclick = () => searchFn(page - 1);
+          pag.appendChild(prev);
+        }
+        const pageInfo = document.createElement('span');
+        pageInfo.style.cssText = 'color: #8b949e; padding: 8px 12px;';
+        pageInfo.textContent = `Page ${page} of ${totalPages}`;
+        pag.appendChild(pageInfo);
+        if (page < totalPages) {
+          const next = document.createElement('button');
+          next.textContent = 'Next →';
+          next.onclick = () => searchFn(page + 1);
+          pag.appendChild(next);
+        }
+      }
+    }
+
+    // Auto-search from URL params
+    const params = getUrlParams();
+    if (params.q) document.getElementById('searchQuery').value = params.q;
+    if (params.diff) document.getElementById('difficulty').value = params.diff;
+    if (params.bounty) {
+      toggleBountyFilter();
+    } else {
+      searchIssues();
+    }
   </script>
 </body>
 </html>
